@@ -1,10 +1,10 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 )
 
 type user struct {
@@ -72,6 +72,26 @@ type user struct {
 //fmt.Println("User Agent:", r.UserAgent())
 //fmt.Println("Port:", r.URL.Port())
 
+//teachers/{id}
+	//teachers?key=value&query=value2&sortby=email&sortorder=ASC
+		// 	fmt.Println(r.URL.Path)
+		// path := strings.TrimPrefix(r.URL.Path, "/teachers/")
+		// userID := strings.TrimSuffix(path, "/")
+
+		// fmt.Println("The ID is ", userID)
+
+		// fmt.Println("Query Params", r.URL.Query())
+		// queryParams := r.URL.Query()
+		// sortby := queryParams.Get("sortby")
+		// sortorder := queryParams.Get("sortorder")
+		// key := queryParams.Get("key")
+
+		// if sortorder == "" {
+		// 	sortorder = "DESC"
+		// }
+		// fmt.Printf("Sortby:%v , SortOrder: %v, Key: %v", sortby, sortorder, key)
+
+
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Hello Root Route"))
 	fmt.Println("Hello Root Route")
@@ -82,25 +102,8 @@ func teachersHandler(w http.ResponseWriter, r *http.Request) {
 	//teachers/{id}
 	//teachers?key=value&query=value2&sortby=email&sortorder=ASC
 	case http.MethodGet:
-		fmt.Println(r.URL.Path)
-		path := strings.TrimPrefix(r.URL.Path, "/teachers/")
-		userID := strings.TrimSuffix(path, "/")
-
-		fmt.Println("The ID is ", userID)
-
-		fmt.Println("Query Params", r.URL.Query())
-		queryParams := r.URL.Query()
-		sortby := queryParams.Get("sortby")
-		sortorder := queryParams.Get("sortorder")
-		key := queryParams.Get("key")
-
-		if sortorder == "" {
-			sortorder = "DESC"
-		}
-		fmt.Printf("Sortby:%v , SortOrder: %v, Key: %v", sortby, sortorder, key)
-
 		w.Write([]byte("hello GET METHOD on Teachers route"))
-		//fmt.Println("hello GET METHOD on Teachers route")
+		fmt.Println("hello GET METHOD on Teachers route")
 	case http.MethodPost:
 		w.Write([]byte("hello POST METHOD on Teachers route"))
 		fmt.Println("hello POST METHOD on Teachers route")
@@ -168,16 +171,32 @@ func execsHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	port := ":3000"
 
-	http.HandleFunc("/", rootHandler)
+	cert :="cert.pem"
+	key := "key.pem"
 
-	http.HandleFunc("/teachers/", teachersHandler)
+	mux:=http.NewServeMux()
 
-	http.HandleFunc("/students/", studentsHandler)
+	mux.HandleFunc("/", rootHandler)
 
-	http.HandleFunc("/execs/", execsHandler)
+	mux.HandleFunc("/teachers/", teachersHandler)
+
+	mux.HandleFunc("/students/", studentsHandler)
+
+	mux.HandleFunc("/execs/", execsHandler)
+
+	tlsConfig:=&tls.Config{
+		MinVersion:tls.VersionTLS12,
+	}
+
+	//create custom server
+  server := &http.Server{
+		Addr:			port,
+		Handler:		mux,
+		TLSConfig:	tlsConfig,
+	}
 
 	fmt.Println("Server is runnning on port " + port)
-	err := http.ListenAndServe(port, nil)
+	err := server.ListenAndServeTLS(cert, key)
 	if err != nil {
 		log.Fatalln("Error starting server:", err)
 	}
