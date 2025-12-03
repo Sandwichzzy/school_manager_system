@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
+
+	mw "github.com/Sandwichzzy/REST_API_GO/internal/api/middlewares"
 )
 
 type user struct {
@@ -73,24 +76,23 @@ type user struct {
 //fmt.Println("Port:", r.URL.Port())
 
 //teachers/{id}
-	//teachers?key=value&query=value2&sortby=email&sortorder=ASC
-		// 	fmt.Println(r.URL.Path)
-		// path := strings.TrimPrefix(r.URL.Path, "/teachers/")
-		// userID := strings.TrimSuffix(path, "/")
+//teachers?key=value&query=value2&sortby=email&sortorder=ASC
+// 	fmt.Println(r.URL.Path)
+// path := strings.TrimPrefix(r.URL.Path, "/teachers/")
+// userID := strings.TrimSuffix(path, "/")
 
-		// fmt.Println("The ID is ", userID)
+// fmt.Println("The ID is ", userID)
 
-		// fmt.Println("Query Params", r.URL.Query())
-		// queryParams := r.URL.Query()
-		// sortby := queryParams.Get("sortby")
-		// sortorder := queryParams.Get("sortorder")
-		// key := queryParams.Get("key")
+// fmt.Println("Query Params", r.URL.Query())
+// queryParams := r.URL.Query()
+// sortby := queryParams.Get("sortby")
+// sortorder := queryParams.Get("sortorder")
+// key := queryParams.Get("key")
 
-		// if sortorder == "" {
-		// 	sortorder = "DESC"
-		// }
-		// fmt.Printf("Sortby:%v , SortOrder: %v, Key: %v", sortby, sortorder, key)
-
+// if sortorder == "" {
+// 	sortorder = "DESC"
+// }
+// fmt.Printf("Sortby:%v , SortOrder: %v, Key: %v", sortby, sortorder, key)
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Hello Root Route"))
@@ -171,10 +173,10 @@ func execsHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	port := ":3000"
 
-	cert :="cert.pem"
+	cert := "cert.pem"
 	key := "key.pem"
 
-	mux:=http.NewServeMux()
+	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", rootHandler)
 
@@ -184,15 +186,18 @@ func main() {
 
 	mux.HandleFunc("/execs/", execsHandler)
 
-	tlsConfig:=&tls.Config{
-		MinVersion:tls.VersionTLS12,
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
 	}
 
+	r1 := mw.NewRateLimiter(5, time.Minute)
+
 	//create custom server
-  server := &http.Server{
-		Addr:			port,
-		Handler:		mux,
-		TLSConfig:	tlsConfig,
+	server := &http.Server{
+		Addr: port,
+		// Handler:		middlewares.SecurityHeaders(mux),
+		Handler:   r1.Middleware(mw.Comporession(mw.ResponseTimeMiddleware(mw.Cors(mw.SecurityHeaders(mux))))),
+		TLSConfig: tlsConfig,
 	}
 
 	fmt.Println("Server is runnning on port " + port)
