@@ -7,8 +7,11 @@ import (
 	"strings"
 )
 
-func Comporession(next http.Handler) http.Handler {
+func Compression(next http.Handler) http.Handler {
+	fmt.Println("Compression Middleware...")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("Compression Middleware being returned...")
+
 		// check of the client can accept gzip encoding
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)

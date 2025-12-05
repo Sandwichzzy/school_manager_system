@@ -1,12 +1,14 @@
 package middlewares
 
 import (
+	"fmt"
 	"net/http"
 )
+
 //api is hosted at www.myapi.com
 // frontend is hosted at www.myfrontend.com
 
-//Allowed origins
+// Allowed origins
 var allowedOrigins = []string{
 	"https://my-origin-url.com",
 	"https://www.myfrontend.com",
@@ -14,26 +16,30 @@ var allowedOrigins = []string{
 }
 
 func Cors(next http.Handler) http.Handler {
+	fmt.Println("Cors Middleware...")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("Cors Middleware being returned...")
+
 		origin := r.Header.Get("Origin")
 		if isOriginAllowed(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			// Allow this origin
 		} else {
 			http.Error(w, "Not allowed by CORS", http.StatusForbidden)
-			return 
-	  }
+			return
+		}
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		w.Header().Set("Access-Control-Expose-Headers", "Authorization")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Max-Age", "3600") 
+		w.Header().Set("Access-Control-Max-Age", "3600")
 
-		if r.Method == http.MethodOptions{
+		if r.Method == http.MethodOptions {
 			return
 		}
 
-		next.ServeHTTP(w, r);
+		next.ServeHTTP(w, r)
+		fmt.Println("Cors Middleware ends...")
 	})
 }
 
