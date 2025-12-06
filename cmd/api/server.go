@@ -8,6 +8,7 @@ import (
 
 	mw "github.com/Sandwichzzy/REST_API_GO/internal/api/middlewares"
 	"github.com/Sandwichzzy/REST_API_GO/internal/api/router"
+	"github.com/Sandwichzzy/REST_API_GO/internal/repository/sqlconnect"
 )
 
 //teachers?key=value&query=value2&sortby=email&sortorder=ASC
@@ -26,6 +27,11 @@ import (
 // fmt.Printf("Sortby:%v , SortOrder: %v, Key: %v", sortby, sortorder, key)
 
 func main() {
+	_, err := sqlconnect.ConnectDb("dbeaver_testdb")
+	if err != nil {
+		log.Fatalln("Database connection error:", err)
+		return
+	}
 	port := ":3000"
 
 	cert := "cert.pem"
@@ -57,7 +63,7 @@ func main() {
 	}
 
 	fmt.Println("Server is runnning on port " + port)
-	err := server.ListenAndServeTLS(cert, key)
+	err = server.ListenAndServeTLS(cert, key)
 	if err != nil {
 		log.Fatalln("Error starting server:", err)
 	}
