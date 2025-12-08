@@ -7,26 +7,29 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"sync"
 
 	"github.com/Sandwichzzy/REST_API_GO/internal/models"
 	"github.com/Sandwichzzy/REST_API_GO/internal/repository/sqlconnect"
 )
 
-var (
-	teachers = make(map[int]models.Teacher)
-	mutex    = &sync.Mutex{}
-	nextID   = 1
-)
+// var (
+// 	teachers = make(map[int]models.Teacher)
+// 	mutex    = &sync.Mutex{}
+// 	nextID   = 1
+// )
 
-// initialize some dummy data
-func init() {
-	teachers[nextID] = models.Teacher{ID: nextID, FirstName: "John", LastName: "Doe", Class: "10A", Subject: "Math"}
-	nextID++
-	teachers[nextID] = models.Teacher{ID: nextID, FirstName: "Jane", LastName: "Smith", Class: "10B", Subject: "Science"}
-	nextID++
-	teachers[nextID] = models.Teacher{ID: nextID, FirstName: "Jane", LastName: "Doe", Class: "10C", Subject: "History"}
-	nextID++
+func isValidSortOrder(order string) bool {
+	return order == "ASC" || order == "DESC"
+}
+func isValidSortField(field string) bool {
+	validField := map[string]bool{
+		"first_name": true,
+		"last_name":  true,
+		"email":      true,
+		"class":      true,
+		"subject":    true,
+	}
+	return validField[field]
 }
 
 func getTeachersHandler(w http.ResponseWriter, r *http.Request) {
@@ -44,19 +47,13 @@ func getTeachersHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("IDStr is ", idStr)
 
 	if idStr == "" {
-		firstName := r.URL.Query().Get("first_name")
-		lastName := r.URL.Query().Get("last_name")
 
 		query := "SELECT id,first_name,last_name,email,class,subject FROM teachers WHERE 1=1"
 		var args []interface{}
-		if firstName != "" {
-			query += " AND first_name=?"
-			args = append(args, firstName)
-		}
-		if lastName != "" {
-			query += " AND last_name=?"
-			args = append(args, lastName)
-		}
+
+		query, args = addFilters(r, query, args)
+
+		query = addSorting(r, query)
 
 		rows, err := db.Query(query, args...)
 		if err != nil {
@@ -111,6 +108,49 @@ func getTeachersHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(teacher)
+}
+
+// /teachers/?sortby=name:asc&sortby=class:desc
+// SELECT id,first_name,last_name,email,class,subject FROM teachers WHERE 1=1 ORDER BY name ASC, class DESC
+func addSorting(r *http.Request, query string) string {
+	sortParams := r.URL.Query()["sortby"]
+	if len(sortParams) > 0 {
+		query += " ORDER BY "
+		for i, param := range sortParams {
+			parts := strings.Split(param, ":")
+			if len(parts) != 2 {
+				continue
+			}
+			field, order := parts[0], strings.ToUpper(parts[1])
+			if !isValidSortField(field) || !isValidSortOrder(order) {
+				continue
+			}
+			if i > 0 {
+				query += ", "
+			}
+			query += " " + field + " " + order
+		}
+	}
+	return query
+}
+
+func addFilters(r *http.Request, query string, args []interface{}) (string, []interface{}) {
+	params := map[string]string{
+		"first_name": "first_name",
+		"last_name":  "last_name",
+		"email":      "email",
+		"class":      "class",
+		"subject":    "subject",
+	}
+
+	for param, dbField := range params {
+		value := r.URL.Query().Get(param)
+		if value != "" {
+			query += " AND " + dbField + "=?"
+			args = append(args, value)
+		}
+	}
+	return query, args
 }
 
 func addTeacherHandler(w http.ResponseWriter, r *http.Request) {
