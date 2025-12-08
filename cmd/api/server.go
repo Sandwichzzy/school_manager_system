@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	mw "github.com/Sandwichzzy/REST_API_GO/internal/api/middlewares"
 	"github.com/Sandwichzzy/REST_API_GO/internal/api/router"
 	"github.com/Sandwichzzy/REST_API_GO/internal/repository/sqlconnect"
+	"github.com/joho/godotenv"
 )
 
 //teachers?key=value&query=value2&sortby=email&sortorder=ASC
@@ -27,12 +29,19 @@ import (
 // fmt.Printf("Sortby:%v , SortOrder: %v, Key: %v", sortby, sortorder, key)
 
 func main() {
-	_, err := sqlconnect.ConnectDb("dbeaver_testdb")
+
+	err := godotenv.Load()
+	if err != nil {
+		return
+	}
+
+	_, err = sqlconnect.ConnectDb()
 	if err != nil {
 		log.Fatalln("Database connection error:", err)
 		return
 	}
-	port := ":3000"
+
+	port := os.Getenv("API_PORT")
 
 	cert := "cert.pem"
 	key := "key.pem"
