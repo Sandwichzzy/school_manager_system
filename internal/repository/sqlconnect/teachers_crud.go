@@ -75,7 +75,8 @@ func AddTeachersDBHandler(newTeachers []models.Teacher) ([]models.Teacher, error
 	}
 	defer db.Close()
 
-	stmt, err := db.Prepare("INSERT INTO teachers(first_name, last_name, email, class,subject) VALUES(?,?,?,?,?)")
+	// stmt, err := db.Prepare("INSERT INTO teachers(first_name, last_name, email, class,subject) VALUES(?,?,?,?,?)")
+	stmt, err := db.Prepare(generateInsertQuery(models.Teacher{}))
 	if err != nil {
 		return nil, utils.ErrorHandler(err, "Error in preparing SQL query")
 	}
@@ -83,7 +84,9 @@ func AddTeachersDBHandler(newTeachers []models.Teacher) ([]models.Teacher, error
 
 	addedTeachers := make([]models.Teacher, len(newTeachers))
 	for i, newTeacher := range newTeachers {
-		res, err := stmt.Exec(newTeacher.FirstName, newTeacher.LastName, newTeacher.Email, newTeacher.Class, newTeacher.Subject)
+		// res, err := stmt.Exec(newTeacher.FirstName, newTeacher.LastName, newTeacher.Email, newTeacher.Class, newTeacher.Subject)
+		values := getStructValues(newTeacher)
+		res, err := stmt.Exec(values...)
 		if err != nil {
 			return nil, utils.ErrorHandler(err, "Error in inserting data into database")
 		}
@@ -389,4 +392,54 @@ func isValidSortField(field string) bool {
 		"subject":    true,
 	}
 	return validField[field]
+}
+
+func generateInsertQuery(model interface{}) string {
+	modelType := reflect.TypeOf(model)
+	var columns, placeholders string
+	for i := 0; i < modelType.NumField(); i++ {
+		dbTag := modelType.Field(i).Tag.Get("db")
+		fmt.Println("dbTag:", dbTag)
+		dbTag = strings.TrimSuffix(dbTag, ",omitempty")
+		if dbTag != "" && dbTag != "id" { //skip ID field if its auto-incremented
+			if columns != "" {
+				columns += ", "
+				placeholders += ", "
+			}
+			columns += dbTag
+			placeholders += "?"
+		}
+	}
+	//INSERT INTO teachers(first_name, last_name, email, class,subject) VALUES(?,?,?,?,?)
+	return fmt.Sprintf("INSERT INTO teachers (%s) VALUES (%s)", columns, placeholders)
+}
+
+// func generateSelectQuery(model interface{}) string {
+// 	modelType := reflect.TypeOf(model)
+// 	var columns string
+// 	for i := 0; i < modelType.NumField(); i++ {
+// 		dbTag := modelType.Field(i).Tag.Get("db")
+// 		dbTag = strings.TrimSuffix(dbTag, ",omitempty")
+// 		if dbTag != "" {
+// 			if columns != "" {
+// 				columns += ", "
+// 			}
+// 			columns += dbTag
+// 		}
+// 	}
+// 	//SELECT id,first_name,last_name,email,class,subject FROM teachers WHERE 1=1
+// 	return fmt.Sprintf("SELECT %s FROM teachers WHERE 1=1", columns)
+// }
+
+func getStructValues(model interface{}) []interface{} {
+	modelVal := reflect.ValueOf(model)
+	modelType := reflect.TypeOf(model)
+	values := []interface{}{}
+	for i := 0; i < modelType.NumField(); i++ {
+		dbTag := modelType.Field(i).Tag.Get("db")
+		if dbTag != "" && dbTag != "id,omitempty" { //skip ID field if its auto-incremented
+			values = append(values, modelVal.Field(i).Interface())
+		}
+	}
+	return values
 }
