@@ -8,3 +8,4 @@ type Teacher struct {
 	Class     string `json:"class,omitempty"`
 	Subject   string `json:"subject,omitempty"`
 }
+
