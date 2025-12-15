@@ -7,12 +7,13 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/Sandwichzzy/REST_API_GO/internal/models"
 	"github.com/Sandwichzzy/REST_API_GO/pkg/utils"
 )
 
-// GET /Students/{id}
+// GET /students/{id}
 func GetStudentByID(id int) (models.Student, error) {
 	db, err := ConnectDb()
 	if err != nil {
@@ -21,7 +22,7 @@ func GetStudentByID(id int) (models.Student, error) {
 	defer db.Close()
 
 	var Student models.Student
-	err = db.QueryRow("SELECT id,first_name,last_name,email,class FROM Students WHERE id=?", id).Scan(&Student.ID, &Student.FirstName, &Student.LastName, &Student.Email, &Student.Class)
+	err = db.QueryRow("SELECT id,first_name,last_name,email,class FROM students WHERE id=?", id).Scan(&Student.ID, &Student.FirstName, &Student.LastName, &Student.Email, &Student.Class)
 	if err == sql.ErrNoRows {
 		return models.Student{}, utils.ErrorHandler(err, "Student not found")
 	} else if err != nil {
@@ -31,15 +32,15 @@ func GetStudentByID(id int) (models.Student, error) {
 }
 
 // GET
-// /Students/ or /Students?first_name=John&sortby=last_name:ASC&sortby=class:DESC
-func GetStudentsDbHandler(Students []models.Student, r *http.Request) ([]models.Student, error) {
+// /students/ or /students?first_name=John&sortby=last_name:ASC&sortby=class:DESC
+func GetStudentsDbHandler(students []models.Student, r *http.Request) ([]models.Student, error) {
 	db, err := ConnectDb()
 	if err != nil {
 		return nil, utils.ErrorHandler(err, "error connecting to database")
 	}
 	defer db.Close()
 
-	query := "SELECT id,first_name,last_name,email,class FROM Students WHERE 1=1"
+	query := "SELECT id,first_name,last_name,email,class FROM students WHERE 1=1"
 	var args []interface{}
 
 	query, args = utils.AddFilters(r, query, args)
@@ -61,12 +62,12 @@ func GetStudentsDbHandler(Students []models.Student, r *http.Request) ([]models.
 		if err != nil {
 			return nil, utils.ErrorHandler(err, "error retrieving data")
 		}
-		Students = append(Students, Student)
+		students = append(students, Student)
 	}
-	return Students, nil
+	return students, nil
 }
 
-// POST /Students/
+// POST /students/
 func AddStudentsDBHandler(newStudents []models.Student) ([]models.Student, error) {
 	db, err := ConnectDb()
 	if err != nil {
@@ -74,7 +75,7 @@ func AddStudentsDBHandler(newStudents []models.Student) ([]models.Student, error
 	}
 	defer db.Close()
 
-	// stmt, err := db.Prepare("INSERT INTO Students(first_name, last_name, email, class) VALUES(?,?,?,?)")
+	// stmt, err := db.Prepare("INSERT INTO students(first_name, last_name, email, class) VALUES(?,?,?,?)")
 	stmt, err := db.Prepare(utils.GenerateInsertQuery("students", models.Student{}))
 	if err != nil {
 		return nil, utils.ErrorHandler(err, "Error in preparing SQL query")
@@ -87,6 +88,9 @@ func AddStudentsDBHandler(newStudents []models.Student) ([]models.Student, error
 		values := utils.GetStructValues(newStudent)
 		res, err := stmt.Exec(values...)
 		if err != nil {
+			if strings.Contains(err.Error(), " a foreign key constraint fails (`school`.`students`, CONSTRAINT `students_ibfk_1` FOREIGN KEY (`class`) REFERENCES `teachers` (`class`))") {
+				return nil, utils.ErrorHandler(err, "class/class teacher does not exist")
+			}
 			return nil, utils.ErrorHandler(err, "Error in inserting data into database")
 		}
 		lastID, err := res.LastInsertId()
@@ -99,7 +103,7 @@ func AddStudentsDBHandler(newStudents []models.Student) ([]models.Student, error
 	return addedStudents, nil
 }
 
-// PUT /Students/{id}
+// PUT /students/{id}
 func UpdateStudent(id int, updatedStudent models.Student) (models.Student, error) {
 	db, err := ConnectDb()
 	if err != nil {
@@ -109,7 +113,7 @@ func UpdateStudent(id int, updatedStudent models.Student) (models.Student, error
 	defer db.Close()
 
 	var existingStudent models.Student
-	err = db.QueryRow("SELECT id,first_name,last_name,email,class FROM Students WHERE id=?", id).Scan(
+	err = db.QueryRow("SELECT id,first_name,last_name,email,class FROM students WHERE id=?", id).Scan(
 		&existingStudent.ID, &existingStudent.FirstName, &existingStudent.LastName, &existingStudent.Email,
 		&existingStudent.Class)
 	if err == sql.ErrNoRows {
@@ -119,7 +123,7 @@ func UpdateStudent(id int, updatedStudent models.Student) (models.Student, error
 	}
 
 	updatedStudent.ID = id
-	_, err = db.Exec("UPDATE Students SET first_name=?, last_name=?, email=?, class=? WHERE id=?",
+	_, err = db.Exec("UPDATE students SET first_name=?, last_name=?, email=?, class=? WHERE id=?",
 		updatedStudent.FirstName, updatedStudent.LastName, updatedStudent.Email,
 		updatedStudent.Class, id)
 
@@ -129,7 +133,7 @@ func UpdateStudent(id int, updatedStudent models.Student) (models.Student, error
 	return updatedStudent, nil
 }
 
-// PATCH /Students/
+// PATCH /students/
 func PatchStudents(updates []map[string]interface{}) error {
 	db, err := ConnectDb()
 	if err != nil {
@@ -155,7 +159,7 @@ func PatchStudents(updates []map[string]interface{}) error {
 		}
 
 		var StudentFromDb models.Student
-		err = db.QueryRow("SELECT id,first_name,last_name,email,class FROM Students WHERE id=?", id).Scan(
+		err = db.QueryRow("SELECT id,first_name,last_name,email,class FROM students WHERE id=?", id).Scan(
 			&StudentFromDb.ID, &StudentFromDb.FirstName, &StudentFromDb.LastName, &StudentFromDb.Email,
 			&StudentFromDb.Class)
 		if err != nil {
@@ -192,7 +196,7 @@ func PatchStudents(updates []map[string]interface{}) error {
 				}
 			}
 		}
-		_, err = tx.Exec("UPDATE Students SET first_name=?, last_name=?, email=?, class=? WHERE id=?",
+		_, err = tx.Exec("UPDATE students SET first_name=?, last_name=?, email=?, class=? WHERE id=?",
 			StudentFromDb.FirstName, StudentFromDb.LastName, StudentFromDb.Email,
 			StudentFromDb.Class, id)
 
@@ -209,7 +213,7 @@ func PatchStudents(updates []map[string]interface{}) error {
 	return nil
 }
 
-// PATCH /Students/{id}
+// PATCH /students/{id}
 func PatchOneStudent(id int, updates map[string]interface{}) (models.Student, error) {
 	db, err := ConnectDb()
 	if err != nil {
@@ -218,7 +222,7 @@ func PatchOneStudent(id int, updates map[string]interface{}) (models.Student, er
 	defer db.Close()
 
 	var existingStudent models.Student
-	err = db.QueryRow("SELECT id,first_name,last_name,email,class FROM Students WHERE id=?", id).Scan(
+	err = db.QueryRow("SELECT id,first_name,last_name,email,class FROM students WHERE id=?", id).Scan(
 		&existingStudent.ID, &existingStudent.FirstName, &existingStudent.LastName, &existingStudent.Email,
 		&existingStudent.Class)
 	if err == sql.ErrNoRows {
@@ -248,7 +252,7 @@ func PatchOneStudent(id int, updates map[string]interface{}) (models.Student, er
 		}
 	}
 
-	_, err = db.Exec("UPDATE Students SET first_name=?, last_name=?, email=?, class=? WHERE id=?",
+	_, err = db.Exec("UPDATE students SET first_name=?, last_name=?, email=?, class=? WHERE id=?",
 		existingStudent.FirstName, existingStudent.LastName, existingStudent.Email,
 		existingStudent.Class, id)
 
@@ -258,7 +262,7 @@ func PatchOneStudent(id int, updates map[string]interface{}) (models.Student, er
 	return existingStudent, nil
 }
 
-// DELETE /Students/{id}
+// DELETE /students/{id}
 func DeleteOneStudent(id int) error {
 	db, err := ConnectDb()
 	if err != nil {
@@ -266,7 +270,7 @@ func DeleteOneStudent(id int) error {
 	}
 	defer db.Close()
 
-	result, err := db.Exec("DELETE FROM Students WHERE id=?", id)
+	result, err := db.Exec("DELETE FROM students WHERE id=?", id)
 	if err != nil {
 		return utils.ErrorHandler(err, "Error executing delete query")
 	}
@@ -281,7 +285,7 @@ func DeleteOneStudent(id int) error {
 	return nil
 }
 
-// DELETE /Students/
+// DELETE /students/
 func DeleteStudents(ids []int) ([]int, error) {
 	db, err := ConnectDb()
 	if err != nil {
@@ -294,7 +298,7 @@ func DeleteStudents(ids []int) ([]int, error) {
 		return nil, utils.ErrorHandler(err, "Database transaction error")
 	}
 	//批量/重复数据库操作：预处理语句快很多（SQL 只在数据库编译一次）
-	stmt, err := tx.Prepare("DELETE FROM Students WHERE id=?")
+	stmt, err := tx.Prepare("DELETE FROM students WHERE id=?")
 	if err != nil {
 		tx.Rollback()
 		return nil, utils.ErrorHandler(err, "Error in preparing delete query")

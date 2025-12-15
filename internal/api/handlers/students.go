@@ -13,11 +13,11 @@ import (
 )
 
 // GET
-// /Students/ or /Students?first_name=John&sortby=last_name:ASC&sortby=class:DESC
+// /students/ or /students?first_name=John&sortby=last_name:ASC&sortby=class:DESC
 func GetStudentsHandler(w http.ResponseWriter, r *http.Request) {
 
-	var Students []models.Student
-	Students, err := sqlconnect.GetStudentsDbHandler(Students, r)
+	var students []models.Student
+	students, err := sqlconnect.GetStudentsDbHandler(students, r)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -29,15 +29,15 @@ func GetStudentsHandler(w http.ResponseWriter, r *http.Request) {
 		Data   []models.Student `json:"data"`
 	}{
 		Status: "success",
-		Count:  len(Students),
-		Data:   Students,
+		Count:  len(students),
+		Data:   students,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
-// GET /Students/{id}
+// GET /students/{id}
 func GetOneStudentHandler(w http.ResponseWriter, r *http.Request) {
 
 	idStr := r.PathValue("id")
@@ -59,7 +59,7 @@ func GetOneStudentHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(Student)
 }
 
-// POST /Students/
+// POST /students/
 func AddStudentsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newStudents []models.Student
@@ -130,7 +130,7 @@ func AddStudentsHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// PUT /Students/{id}
+// PUT /students/{id}
 func UpdateStudentHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
@@ -158,7 +158,7 @@ func UpdateStudentHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(updatedStudentFromDB)
 }
 
-// PATCH /Students
+// PATCH /students
 func PatchStudentsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var updates []map[string]interface{}
@@ -178,7 +178,7 @@ func PatchStudentsHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// PATCH /Students/{id}
+// PATCH /students/{id}
 func PatchOneStudentHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
@@ -206,7 +206,7 @@ func PatchOneStudentHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(updateStudent)
 }
 
-// DELETE /Students/{id}
+// DELETE /students/{id}
 func DeleteOneStudentHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
@@ -234,7 +234,7 @@ func DeleteOneStudentHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// DELETE /Students/
+// DELETE /students/
 func DeleteStudentsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var ids []int
@@ -256,7 +256,7 @@ func DeleteStudentsHandler(w http.ResponseWriter, r *http.Request) {
 		Status     string `json:"status"`
 		DeletedIDs []int  `json:"deleted_ids"`
 	}{
-		Status:     "Students successfully deleted",
+		Status:     "students successfully deleted",
 		DeletedIDs: deletedIds,
 	}
 	json.NewEncoder(w).Encode(response)

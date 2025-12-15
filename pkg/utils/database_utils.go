@@ -40,8 +40,8 @@ func GetStructValues(model interface{}) []interface{} {
 	return values
 }
 
-// /Students/?sortby=name:asc&sortby=class:desc
-// SELECT id,first_name,last_name,email,class,subject FROM Students WHERE 1=1 ORDER BY name ASC, class DESC
+// /students/?sortby=name:asc&sortby=class:desc
+// SELECT id,first_name,last_name,email,class,subject FROM students WHERE 1=1 ORDER BY name ASC, class DESC
 func AddSorting(r *http.Request, query string) string {
 	sortParams := r.URL.Query()["sortby"]
 	if len(sortParams) > 0 {
