@@ -334,3 +334,33 @@ func DeleteTeachers(ids []int) ([]int, error) {
 	}
 	return deletedIds, nil
 }
+
+// GET /teachers/{id}/students
+func GetStudentsByTeacherId(teacherId string, students []models.Student) ([]models.Student, error) {
+	db, err := ConnectDb()
+	if err != nil {
+		return nil, utils.ErrorHandler(err, "error connecting to database")
+	}
+	defer db.Close()
+
+	query := `SELECT id, first_name, last_name, email, class FROM students WHERE class = (SELECT class FROM teachers WHERE id = ?)`
+	rows, err := db.Query(query, teacherId)
+	if err != nil {
+		return nil, utils.ErrorHandler(err, "error query data")
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var student models.Student
+		err := rows.Scan(&student.ID, &student.FirstName, &student.LastName, &student.Email, &student.Class)
+		if err != nil {
+			return nil, utils.ErrorHandler(err, "error retrieving data")
+		}
+		students = append(students, student)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, utils.ErrorHandler(err, "error retrieving data")
+	}
+	return students, nil
+}

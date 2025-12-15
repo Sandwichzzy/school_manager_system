@@ -10,6 +10,7 @@ import (
 
 	"github.com/Sandwichzzy/REST_API_GO/internal/models"
 	"github.com/Sandwichzzy/REST_API_GO/internal/repository/sqlconnect"
+	"github.com/Sandwichzzy/REST_API_GO/pkg/utils"
 )
 
 // GET
@@ -261,4 +262,68 @@ func DeleteTeachersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	json.NewEncoder(w).Encode(response)
 
+}
+
+// GET /teachers/{id}/students
+func GetStudentsByTeacherIdHandler(w http.ResponseWriter, r *http.Request) {
+	teacherId := r.PathValue("id")
+
+	var students []models.Student
+
+	students, err := sqlconnect.GetStudentsByTeacherId(teacherId, students)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := struct {
+		Status string           `json:"status"`
+		Count  int              `json:"count"`
+		Data   []models.Student `json:"data"`
+	}{
+		Status: "success",
+		Count:  len(students),
+		Data:   students,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// GET /students/{id}/studentcount
+func GetStudentsCountByTeacherIdHandler(w http.ResponseWriter, r *http.Request) {
+	teacherId := r.PathValue("id")
+
+	studentCount, err := GetStudentsCountByTeacherId(teacherId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	response := struct {
+		Status string `json:"status"`
+		Count  int    `json:"count"`
+	}{
+		Status: "success",
+		Count:  studentCount,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func GetStudentsCountByTeacherId(teacherId string) (int, error) {
+	db, err := sqlconnect.ConnectDb()
+	if err != nil {
+		return 0, utils.ErrorHandler(err, "error connecting to database")
+	}
+	defer db.Close()
+
+	query := `SELECT COUNT(*) FROM students WHERE class =(SELECT class FROM teachers WHERE id = ?)`
+	var studentCount int
+	err = db.QueryRow(query, teacherId).Scan(&studentCount)
+	if err != nil {
+		return 0, utils.ErrorHandler(err, "error query data")
+	}
+	return studentCount, nil
 }
