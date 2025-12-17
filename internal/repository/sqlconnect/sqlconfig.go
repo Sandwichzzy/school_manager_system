@@ -9,7 +9,6 @@ import (
 )
 
 func ConnectDb() (*sql.DB, error) {
-	fmt.Println("Connecting to MariaDB...")
 
 	user := os.Getenv("DB_USER")
 	password := os.Getenv("DB_PASSWORD")
@@ -24,6 +23,5 @@ func ConnectDb() (*sql.DB, error) {
 		// panic(err)
 		return nil, err
 	}
-	fmt.Println("Connected to MariaDB successfully")
 	return db, nil
 }

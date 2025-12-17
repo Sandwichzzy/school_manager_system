@@ -10,6 +10,7 @@ import (
 	mw "github.com/Sandwichzzy/REST_API_GO/internal/api/middlewares"
 	"github.com/Sandwichzzy/REST_API_GO/internal/api/router"
 	"github.com/Sandwichzzy/REST_API_GO/internal/repository/sqlconnect"
+	"github.com/Sandwichzzy/REST_API_GO/pkg/utils"
 	"github.com/joho/godotenv"
 )
 
@@ -37,7 +38,7 @@ func main() {
 
 	_, err = sqlconnect.ConnectDb()
 	if err != nil {
-		log.Fatalln("Database connection error:", err)
+		utils.ErrorHandler(err, "Database connection failed")
 		return
 	}
 

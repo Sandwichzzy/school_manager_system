@@ -1,7 +1,10 @@
 package sqlconnect
 
 import (
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +13,7 @@ import (
 
 	"github.com/Sandwichzzy/REST_API_GO/internal/models"
 	"github.com/Sandwichzzy/REST_API_GO/pkg/utils"
+	"golang.org/x/crypto/argon2"
 )
 
 // GET /execs/{id}
@@ -85,7 +89,24 @@ func AddExecsDBHandler(newExecs []models.Exec) ([]models.Exec, error) {
 	defer stmt.Close()
 
 	addedExecs := make([]models.Exec, len(newExecs))
+
 	for i, newExec := range newExecs {
+		if newExec.Password == "" {
+			return nil, utils.ErrorHandler(errors.New("password is blank"), "Password is required for new Exec")
+		}
+		// Hash the password using Argon2
+		salt := make([]byte, 16)
+		_, err := rand.Read(salt)
+		if err != nil {
+			return nil, utils.ErrorHandler(errors.New("failed to generate salt"), "Error generating salt for password hashing")
+		}
+		// key, salt, 迭代次数 , 内存成本 , 线程数 , 输出哈希长度
+		hash := argon2.IDKey([]byte(newExec.Password), salt, 1, 64*1024, 4, 32)
+		saltBase64 := base64.StdEncoding.EncodeToString(salt)
+		hashBase64 := base64.StdEncoding.EncodeToString(hash)
+		encodedHash := fmt.Sprintf("%s.%s", saltBase64, hashBase64)
+		newExec.Password = encodedHash
+
 		values := utils.GetStructValues(newExec)
 		res, err := stmt.Exec(values...)
 		if err != nil {
@@ -248,4 +269,23 @@ func DeleteOneExec(id int) error {
 		return utils.ErrorHandler(nil, fmt.Sprintf("Exec ID %d not found", id))
 	}
 	return nil
+}
+
+func GetUserByUsername(username string) (*models.Exec, error) {
+	db, err := ConnectDb()
+	if err != nil {
+		return nil, utils.ErrorHandler(err, "internal server error")
+	}
+	defer db.Close()
+
+	user := &models.Exec{}
+	err = db.QueryRow(`SELECT id,first_name,last_name,email,username,password,role,inactive_status FROM execs WHERE username=?`, username).Scan(
+		&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.Username, &user.Password, &user.Role, &user.InactiveStatus)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, utils.ErrorHandler(err, "user not found")
+		}
+		return nil, utils.ErrorHandler(err, "database query error")
+	}
+	return user, nil
 }

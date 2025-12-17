@@ -7,9 +7,11 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/Sandwichzzy/REST_API_GO/internal/models"
 	"github.com/Sandwichzzy/REST_API_GO/internal/repository/sqlconnect"
+	"github.com/Sandwichzzy/REST_API_GO/pkg/utils"
 )
 
 // GET
@@ -202,6 +204,74 @@ func DeleteOneExecHandler(w http.ResponseWriter, r *http.Request) {
 	}{
 		Status: "Exec successfully deleted",
 		ID:     id,
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	var req models.Exec
+	//Data Validation
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+	if req.Username == "" || req.Password == "" {
+		http.Error(w, "Username and password are required", http.StatusBadRequest)
+		return
+	}
+
+	//Search for user if user actually exists
+	user, err := sqlconnect.GetUserByUsername(req.Username)
+	if err != nil {
+		http.Error(w, "Invalid username or password", http.StatusBadRequest)
+		return
+	}
+
+	// is user active
+	if user.InactiveStatus {
+		http.Error(w, "user is inactive", http.StatusForbidden)
+		return
+	}
+
+	//verify password
+	err = utils.VerifyPassword(req.Password, user.Password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+	//generate JWT token
+	tokenString, err := utils.SignToken(user.ID, user.Username, user.Role)
+	if err != nil {
+		http.Error(w, "error generating token", http.StatusInternalServerError)
+		return
+	}
+	//Send token as a response or a cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "Bearer",
+		Value:    tokenString,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		Expires:  time.Now().Add(24 * time.Hour),
+	})
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "test",
+		Value:    "testvalue",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		Expires:  time.Now().Add(24 * time.Hour),
+	})
+
+	//response
+	w.Header().Set("Content-Type", "application/json")
+	response := struct {
+		Token string `json:"token"`
+	}{
+		Token: tokenString,
 	}
 	json.NewEncoder(w).Encode(response)
 }
