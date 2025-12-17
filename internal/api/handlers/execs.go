@@ -208,6 +208,7 @@ func DeleteOneExecHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// POST /execs/login
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var req models.Exec
 	//Data Validation
@@ -255,15 +256,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   true,
 		Expires:  time.Now().Add(24 * time.Hour),
-	})
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "test",
-		Value:    "testvalue",
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		Expires:  time.Now().Add(24 * time.Hour),
+		SameSite: http.SameSiteStrictMode,
 	})
 
 	//response
@@ -274,4 +267,21 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		Token: tokenString,
 	}
 	json.NewEncoder(w).Encode(response)
+}
+
+// POST /execs/logout
+func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	//clear the auth cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "Bearer",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		Expires:  time.Unix(0, 0),
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte(`{"message":"Logged out successfully"}`))
 }
