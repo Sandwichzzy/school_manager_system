@@ -8,7 +8,7 @@ import (
 )
 
 func SignToken(userId int, username, role string) (string, error) {
-	jwtSecret := os.Getenv("JWT_SECRET")
+	jwtSecret := os.Getenv("JWT_SECRET_KEY")
 	jwtExpiresIn := os.Getenv("JWT_EXPIRES_IN")
 
 	claims := jwt.MapClaims{

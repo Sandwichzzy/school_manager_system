@@ -63,6 +63,7 @@ func isWhitelisted(param string, whitelist []string) bool {
 }
 
 func filterQueryParams(r *http.Request, whitelist []string) {
+	//
 	query := r.URL.Query()
 	for k, v := range query {
 		if len(v) > 1 {
