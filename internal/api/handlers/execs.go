@@ -285,3 +285,58 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(`{"message":"Logged out successfully"}`))
 }
+
+// PUT /execs/{id}/password
+func UpdatePasswordHandler(w http.ResponseWriter, r *http.Request) {
+	idStr := r.PathValue("id")
+	userId, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid Exec ID", http.StatusBadRequest)
+		return
+	}
+
+	var req models.UpdatePasswordRequest
+	err = json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+	r.Body.Close()
+
+	// Validate request
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		http.Error(w, "Current password and new password are required", http.StatusBadRequest)
+		return
+	}
+
+	_, err = sqlconnect.UpdatePasswordInDb(userId, req.CurrentPassword, req.NewPassword)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	//send token as a response or as a cookie
+	// http.SetCookie(w, &http.Cookie{
+	// 	Name:     "Bearer",
+	// 	Value:    token,
+	// 	Path:     "/",
+	// 	HttpOnly: true,
+	// 	Secure:   true,
+	// 	Expires:  time.Now().Add(24 * time.Hour),
+	// 	SameSite: http.SameSiteStrictMode,
+	// })
+
+	//Response body
+	w.Header().Set("Content-Type", "application/json")
+	response := struct {
+		Message string `json:"message"`
+	}{
+		Message: "Password updated successfully",
+	}
+	// response := models.UpdatePasswordResponse{
+	// 	Token:           token,
+	// 	PasswordUpdated: true,
+	// }
+	json.NewEncoder(w).Encode(response)
+
+}
