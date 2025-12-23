@@ -4,8 +4,25 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 )
+
+// url?limit=50&page=3
+// database will leave/will not show calculated entries from the beginning, (page -1) * limit(1-1*50=0)
+// page 1, 1-1*limit=0 , first 50 entries 0-49
+// page 2, 2-1*limit=50 = 50, next 50 entries 50-99
+func GetPaginationParams(r *http.Request) (int, int) {
+	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil {
+		page = 1
+	}
+	limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+	if err != nil {
+		limit = 10
+	}
+	return limit, page
+}
 
 func GenerateInsertQuery(tableName string, model interface{}) string {
 	modelType := reflect.TypeOf(model)

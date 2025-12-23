@@ -10,6 +10,7 @@ import (
 
 	"github.com/Sandwichzzy/REST_API_GO/internal/models"
 	"github.com/Sandwichzzy/REST_API_GO/internal/repository/sqlconnect"
+	"github.com/Sandwichzzy/REST_API_GO/pkg/utils"
 )
 
 // GET
@@ -17,20 +18,28 @@ import (
 func GetStudentsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var students []models.Student
-	students, err := sqlconnect.GetStudentsDbHandler(students, r)
+
+	// Pagination
+	limit, page := utils.GetPaginationParams(r)
+
+	students, totalStudents, err := sqlconnect.GetStudentsDbHandler(students, r, limit, page)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	response := struct {
-		Status string           `json:"status"`
-		Count  int              `json:"count"`
-		Data   []models.Student `json:"data"`
+		Status   string           `json:"status"`
+		Count    int              `json:"count"`
+		Page     int              `json:"page"`
+		PageSize int              `json:"page_size"`
+		Data     []models.Student `json:"data"`
 	}{
-		Status: "success",
-		Count:  len(students),
-		Data:   students,
+		Status:   "success",
+		Count:    totalStudents,
+		Data:     students,
+		Page:     page,
+		PageSize: limit,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

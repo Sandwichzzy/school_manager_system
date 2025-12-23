@@ -18,20 +18,27 @@ import (
 func GetTeachersHandler(w http.ResponseWriter, r *http.Request) {
 
 	var teachers []models.Teacher
-	teachers, err := sqlconnect.GetTeachersDbHandler(teachers, r)
+
+	limit, page := utils.GetPaginationParams(r)
+
+	teachers, totalTeachers, err := sqlconnect.GetTeachersDbHandler(teachers, r, limit, page)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	response := struct {
-		Status string           `json:"status"`
-		Count  int              `json:"count"`
-		Data   []models.Teacher `json:"data"`
+		Status   string           `json:"status"`
+		Count    int              `json:"count"`
+		Page     int              `json:"page"`
+		PageSize int              `json:"page_size"`
+		Data     []models.Teacher `json:"data"`
 	}{
-		Status: "success",
-		Count:  len(teachers),
-		Data:   teachers,
+		Status:   "success",
+		Count:    totalTeachers,
+		Data:     teachers,
+		Page:     page,
+		PageSize: limit,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
