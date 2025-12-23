@@ -68,7 +68,7 @@
     "last_name": "Moore",
     "email": "ian.moore@example.com",
     "username": "ian.moore",
-    "password": "securepassword9",
+    "password": "securepassword21",
     "role": "exec"
   },
   {
@@ -76,7 +76,7 @@
     "last_name": "Jackson",
     "email": "jasmine.jackson@example.com",
     "username": "jasmine.jackson",
-    "password": "securepassword10",
+    "password": "securepassword22",
     "role": "exec"
   }
 ]
