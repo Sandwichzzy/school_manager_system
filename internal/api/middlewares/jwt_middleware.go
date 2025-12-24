@@ -12,8 +12,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type ContextKey string
-
 func JWTMiddleware(next http.Handler) http.Handler {
 	fmt.Println("-----------------JWT Middleware-----------------")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -61,10 +59,10 @@ func JWTMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), ContextKey("role"), claims["role"])
-		ctx = context.WithValue(ctx, ContextKey("expiresAt"), claims["exp"])
-		ctx = context.WithValue(ctx, ContextKey("username"), claims["user"])
-		ctx = context.WithValue(ctx, ContextKey("userId"), claims["uid"])
+		ctx := context.WithValue(r.Context(), utils.ContextKey("role"), claims["role"])
+		ctx = context.WithValue(ctx, utils.ContextKey("expiresAt"), claims["exp"])
+		ctx = context.WithValue(ctx, utils.ContextKey("username"), claims["user"])
+		ctx = context.WithValue(ctx, utils.ContextKey("userId"), claims["uid"])
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 		fmt.Println("Sent response from JWT Middleware ++++++++++++++")

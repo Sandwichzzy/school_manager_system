@@ -299,9 +299,16 @@ func GetStudentsByTeacherIdHandler(w http.ResponseWriter, r *http.Request) {
 
 // GET /students/{id}/studentcount
 func GetStudentsCountByTeacherIdHandler(w http.ResponseWriter, r *http.Request) {
+	//admin manager exec
+	_, err := utils.AuthorizeUser(r.Context().Value(utils.ContextKey("role")).(string), "exec", "manager", "admin")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+
 	teacherId := r.PathValue("id")
 
-	studentCount, err := GetStudentsCountByTeacherId(teacherId)
+	studentCount, err := sqlconnect.GetStudentsCountByTeacherIdFromDb(teacherId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -317,20 +324,4 @@ func GetStudentsCountByTeacherIdHandler(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
-}
-
-func GetStudentsCountByTeacherId(teacherId string) (int, error) {
-	db, err := sqlconnect.ConnectDb()
-	if err != nil {
-		return 0, utils.ErrorHandler(err, "error connecting to database")
-	}
-	defer db.Close()
-
-	query := `SELECT COUNT(*) FROM students WHERE class =(SELECT class FROM teachers WHERE id = ?)`
-	var studentCount int
-	err = db.QueryRow(query, teacherId).Scan(&studentCount)
-	if err != nil {
-		return 0, utils.ErrorHandler(err, "error query data")
-	}
-	return studentCount, nil
 }
