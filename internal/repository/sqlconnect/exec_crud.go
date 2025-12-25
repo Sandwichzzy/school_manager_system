@@ -313,12 +313,6 @@ func UpdatePasswordInDb(userId int, currentPassword, newPassword string) (bool, 
 	if err != nil {
 		return false, utils.ErrorHandler(err, "error updating password")
 	}
-
-	// token, err := utils.SignToken(userId, username, userRole)
-	// if err != nil {
-	// 	utils.ErrorHandler(err, "Password UPdated, error create token")
-	// 	return
-	// }
 	return true, nil
 }
 

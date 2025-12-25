@@ -1,1 +1,6 @@
 openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout key.pem -out cert.pem -config openssl.cnf
+
+GOOS=linux GOARCH=amd64 go build -o rest_api_linux_amd64 server.go
+GOOS=darwin GOARCH=arm64 go build -o rest_api_macOS_arm64 server.go
+go build -o rest_api_linux_X86-64_TLS_WO_Mdlwrs server.go
+garble build -o rest_api_linux_X86-64_TLS_with_MdlWares server.go
