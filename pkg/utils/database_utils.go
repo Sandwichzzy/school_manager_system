@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	_ "gorm.io/gorm"
 )
 
 // url?limit=50&page=3
